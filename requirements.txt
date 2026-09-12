@@ -4,3 +4,7 @@ matplotlib
 seaborn
 rasterio
 opencv-python
+scikit-learn
+torch
+torchvision
+torchaudio
