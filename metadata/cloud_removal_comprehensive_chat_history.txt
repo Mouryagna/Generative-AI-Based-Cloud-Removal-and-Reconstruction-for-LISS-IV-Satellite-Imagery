@@ -1,0 +1,599 @@
+CLOUD REMOVAL PROJECT — COMPREHENSIVE CHAT HISTORY SUMMARY Coverage:
+Cloud Removal project conversations and retained project context through
+1 November 2026. Purpose: Transfer the project state and decisions into
+a new chat without losing context.
+
+======================================================================
+A. PROJECT IDENTITY AND GOAL
+======================================================================
+
+Project title: Generative AI-Based Cloud Removal and Reconstruction for
+LISS-IV Satellite Imagery
+
+Event: ISRO Bharatiya Antariksh Hackathon 2026
+
+Goal: Use paired cloudy and cloud-free LISS-IV satellite imagery to
+reconstruct cloud-obscured optical imagery while preserving spatial
+detail and spectral information.
+
+The project direction is LISS-IV-based conditional diffusion using the
+existing DiffCR implementation. It is not a new Pix2Pix, PatchGAN,
+Mamba, SAR, or unrelated cloud-removal model.
+
+The user wants to follow the core method of the selected DiffCR paper
+and adapt it to LISS-IV data. Do not claim an exact reproduction of
+every experiment in the paper.
+
+======================================================================
+B. BASE PAPER AND REPOSITORY
+======================================================================
+
+Paper: “DiffCR: A Fast Conditional Diffusion Framework for Cloud Removal
+From Optical Satellite Images” IEEE Transactions on Geoscience and
+Remote Sensing, 2024.
+
+Repository: https://github.com/XavierJiezou/DiffCR
+
+The user has already implemented and trained DiffCR. The existing model
+and checkpoint are valuable and must be preserved.
+
+Paper method, in brief: - Paired cloudy and clear satellite images are
+used for supervised learning. - The cloudy image is the conditioning
+input. - The clear image is the reconstruction target. - Diffusion
+training uses noisy versions of the clear target conditioned on the
+cloudy image. - The DiffCR model predicts the clean image x0 directly
+(data prediction), rather than only predicting noise. - The architecture
+includes a condition encoder, time encoder, and denoising autoencoder
+with TCFBlocks. - The paper discusses patch-based training. SEN12MS-CR
+is described with 256x256 patches and 50% overlap.
+
+Important: The paper does not mandate a separate cloud-mask network,
+cloud mask as a required model input, SIFT/RANSAC registration, or
+Pix2Pix/PatchGAN. Those are not mandatory DiffCR stages.
+
+The uploaded paper is referenced in the project conversation as
+turn25file0 (14 pages). Useful locations noted: - Fig. 1 and Section
+III, pp. 2–4: cloudy conditioning input, noisy clear target y_t, model
+predicts clean y_0. - Section III-D, p. 7: direct data prediction y0
+loss. - Section IV-A, p. 7: datasets; SEN12MS-CR uses 256x256 patches
+with 50% spatial overlap.
+
+======================================================================
+C. PROJECT HISTORY AND MODEL DIRECTION
+======================================================================
+
+Early project discussions included the need to understand: - CNNs and
+U-Net. - Transformers and attention. - GANs and conditional GANs. -
+Diffusion models and DDPM. - Cloud-removal reconstruction. - Satellite
+bands and spectral preservation.
+
+The user has studied GAN basics and conditional GANs, but the project
+ultimately selected DiffCR. Do not redirect the current project into a
+new GAN or Pix2Pix pipeline.
+
+An early educational explanation covered vanilla DDPM: - Start from
+clean image x0. - Add Gaussian noise to produce xt at a random
+timestep. - Train a timestep-conditioned denoiser. - In a vanilla DDPM,
+the denoiser often predicts noise using an MSE objective. - In
+inference, begin with noise and iteratively reverse the diffusion
+process. This was background learning, not a decision to replace DiffCR.
+
+The final direction is: - Keep the DiffCR implementation. - Adapt its
+data handling to LISS-IV. - Fine-tune or run a separate experiment using
+new data and new checkpoint paths. - Evaluate the original loss first. -
+Experiment with additional spectral losses only after establishing a
+baseline.
+
+======================================================================
+D. DATA SOURCE AND NON-NEGOTIABLE DATA CONSTRAINTS
+======================================================================
+
+The selected experimental imagery is LISS-IV.
+
+The user explicitly chose: - Use LISS-IV experimental data. - Use native
+GeoTIFF imagery and preserve source pixel values. - Use the Green, Red,
+and NIR bands: BAND2, BAND3, BAND4. - Geographically align cloudy and
+clear pairs before advanced diffusion evaluation. - Split data at scene
+level. - Use tiled/full-scene inference where required. - Use PNG/JPG
+only for visualization or previews, not as training source data. - Use
+college servers for training when applicable.
+
+The user explicitly rejected using Sentinel-2 as the project dataset.
+Sentinel-2 was discussed in a separate data-collection context,
+including ZIPs and 10980x10980 scenes, but the final experimental
+constraint retained in project context is LISS-IV only. Do not silently
+switch the project dataset to Sentinel-2.
+
+Native LISS-IV bands: - BAND2 = Green - BAND3 = Red - BAND4 = NIR
+
+Do not convert training data to PNG/JPG. Preserve native TIFF/GeoTIFF
+values and metadata as far as the processing pipeline allows.
+
+======================================================================
+E. HISTORICAL DATASET COUNTS — KEEP THE TIMELINE STRAIGHT
+======================================================================
+
+Several dataset counts appeared at different stages of the project. They
+refer to different snapshots/experiments and must not be mixed together.
+
+1.  Earlier U-Net baseline dataset snapshot (reported 4 October 2026):
+
+-   235,001 paired 256x256 patches.
+-   Scene-level split:
+    -   Train: 185,001
+    -   Validation: 25,000
+    -   Test: 25,000
+
+2.  Earlier source-scene collection snapshot (reported 4 October 2026):
+
+-   60 cloudy/cloud-free native GeoTIFF scene pairs.
+-   User stated that these pairs should be geographically aligned before
+    advanced diffusion evaluation.
+
+3.  Later existing DiffCR dataset snapshot:
+
+-   22 scenes.
+-   75,551 paired patches.
+-   Train: 51,414.
+-   Validation: 10,442.
+-   Test: 13,695.
+-   Split by scene.
+-   Best validation loss approximately 0.05409 at epoch 8. This is
+    validation loss, not test performance.
+
+These figures are not interchangeable. They were reported in different
+stages or dataset versions. Do not combine 235,001 and 75,551 into one
+total or assume they describe the same exact dataset snapshot. If the
+distinction matters, inspect the corresponding manifests/configurations
+before making a claim.
+
+4.  New data experiment collection (late October 2026):
+
+-   17 cloudy ZIPs and 17 clear ZIPs extracted.
+-   Paired provisionally by Pair ID.
+-   Pair IDs: Pair1, Pair4–Pair11, Pair13–Pair20.
+-   Initial approximate bounding-box overlap screen identified 13
+    provisional candidates: Pair1, Pair4, Pair5, Pair9, Pair11, Pair13,
+    Pair14, Pair15, Pair16, Pair17, Pair18, Pair19, Pair20.
+-   Pair6, Pair7, Pair8, Pair10 had no overlap in the initial screening
+    method. Pair10 also had UTM zone mismatch (UTM44N vs UTM43N).
+-   Pair IDs and positive bounding-box overlap do not prove that the
+    cloudy and clear scenes are correct acquisition pairs or
+    pixel-aligned.
+
+======================================================================
+F. EARLY U-NET BASELINE RESULTS
+======================================================================
+
+A U-Net + L1 baseline was reported on 4 October 2026.
+
+Dataset snapshot: - 25,000 test patches. - The larger dataset snapshot
+was 235,001 paired 256x256 patches, split by scene as 185,001 / 25,000 /
+25,000.
+
+Reported best U-Net + L1 result at epoch 5: - MAE: 0.043772 - RMSE:
+0.067446 - PSNR: 23.4209 dB - SSIM: 0.808675 - SAM: 9.9696 degrees
+
+Qualitative observation: - Outputs were smooth. - Fine details were
+lost. - Spectral recovery was incomplete.
+
+These are U-Net baseline results, not DiffCR results. Do not attribute
+them to DiffCR.
+
+A later project comparison plan mentioned MAE, RMSE, PSNR, SSIM, and SAM
+for comparing the LISS-IV-adapted diffusion model with U-Net and
+relevant references. Ensure all comparisons use the same held-out test
+scenes and consistent preprocessing.
+
+======================================================================
+G. EXISTING DIFFCR IMPLEMENTATION
+======================================================================
+
+Existing code components: - DiffCRModel in src.model - Diffusion in
+src.diffusion - DiffusionSampler in src.sampler
+
+Existing model channel arrangement: - Input: 6 channels (3 cloudy image
+bands + 3 noisy clear target bands). - Output: 3 channels (predicted
+clean image).
+
+Existing bands: - BAND2 Green - BAND3 Red - BAND4 NIR
+
+Existing normalization assumption: 2 * (x / 1023) - 1 Nominal normalized
+range: [-1, 1].
+
+This normalization must be verified for the new LISS-IV data. Do not
+blindly assume that cloudy and clear imagery have the same radiometric
+scale or that 1023 is appropriate for both.
+
+Existing original checkpoint: checkpoints_model.pth
+
+Never overwrite this checkpoint.
+
+======================================================================
+H. PROPOSED SPECTRAL-LOSS EXPERIMENT
+======================================================================
+
+The user is considering a modified objective:
+
+L_total = lambda1 * L1 + lambda2 * L_SAM + lambda3 * L_Spectral
+
+Terms: - L1: pixel-wise reconstruction loss. - L_SAM: Spectral Angle
+Mapper loss. - L_Spectral: inter-band spectral consistency loss.
+
+This is a proposed experiment/hypothesis. It is not yet established as
+novel and is not guaranteed to improve results.
+
+Required experimental comparison: 1. Existing DiffCR objective as
+baseline. 2. DiffCR + SAM. 3. DiffCR + spectral consistency. 4. DiffCR +
+SAM + spectral consistency, if compute/time permit.
+
+Use the same data split, preprocessing, and evaluation protocol. Compare
+MAE, RMSE, PSNR, SSIM, and SAM. Do not claim improvement without
+held-out test results. Literature review is needed before claiming
+novelty.
+
+======================================================================
+I. NEW EXPERIMENT FOLDER STRUCTURE
+======================================================================
+
+Project root: E:-Removal
+
+New experiment structure: data data data scripts scripts scripts
+checkpoints outputs logs
+
+New source data: - Cloudy: D: - Clear: D:
+
+All new experiment outputs must remain isolated under the new folders.
+Do not alter the old dataset, old scripts, notebooks, or original
+checkpoint.
+
+======================================================================
+J. CONFIGURATION FILE ALREADY CREATED AND TESTED
+======================================================================
+
+File: scripts/configuration/configuration.py
+
+Contents:
+
+from pathlib import Path
+
+PROJECT_ROOT = Path(r”E:-Removal”) DATA_ROOT = Path(r”D:“) CLOUDY_DIR =
+DATA_ROOT /”cloudy” CLEAR_DIR = DATA_ROOT / “clear”
+
+NEW_DATA_DIR = PROJECT_ROOT / “data” / “new” ALIGNED_DIR = NEW_DATA_DIR
+/ “aligned” PATCH_DIR = NEW_DATA_DIR / “patches” MANIFEST_DIR =
+NEW_DATA_DIR / “manifests”
+
+CHECKPOINT_DIR = PROJECT_ROOT / “checkpoints” / “new” OUTPUT_DIR =
+PROJECT_ROOT / “outputs” / “new” LOG_DIR = PROJECT_ROOT / “logs” / “new”
+
+BANDS = [“BAND2.tif”, “BAND3.tif”, “BAND4.tif”] BAND_NAMES = [“Green”,
+“Red”, “NIR”] NUM_BANDS = 3
+
+PATCH_SIZE = 256 STRIDE = 256 MIN_VALID_FRACTION = 0.90
+
+MAX_PIXEL_VALUE = 1023.0 NORMALIZATION_MIN = -1.0 NORMALIZATION_MAX =
+1.0
+
+TRAIN_RATIO = 0.70 VAL_RATIO = 0.15 TEST_RATIO = 0.15 RANDOM_SEED = 42
+
+The configuration file was tested and works.
+
+======================================================================
+K. PAIR1 — PAIRING, REPROJECTION, AND ALIGNED OUTPUT
+======================================================================
+
+Current single-scene focus: Pair1, named bengaluru1.
+
+Source folders: Cloudy: D:_Bengaluru-20261031T141728Z-1-001
+
+Clear: D:_Bengaluru-20261031T143602Z-1-001
+
+Each contains BAND2, BAND3, BAND4. Source data are uint16 and 5 m
+resolution at the original source level.
+
+Aligned output: E:-Removal
+
+Contents: cloudy2.tif cloudy3.tif cloudy4.tif clear2.tif clear3.tif
+clear4.tif valid_mask.npy alignment_info.txt
+
+Alignment script: scripts/preparation/align_pair1.py
+
+Method: - Cloudy image used as reference grid. - Clear BAND2/BAND3/BAND4
+reprojected to cloudy grid. - Bilinear resampling used for clear
+reflectance bands. - Nearest-neighbour resampling used for validity
+masks. - Common valid footprint cropped to a bounding rectangle.
+
+Output: - Width: 17,354 pixels. - Height: 16,595 pixels. - CRS:
+EPSG:32643. - All six aligned TIFFs have shape (16595, 17354). - All six
+share the same CRS, dimensions, and affine transform: | 5.00, 0.00,
+727858.94| | 0.00,-5.00, 1534262.50| | 0.00, 0.00, 1.00|
+
+Cloudy aligned dtype: uint16. Clear aligned dtype: float32.
+
+The script refuses to run if the output folder already exists/is
+non-empty. Do not rerun blindly or overwrite the output. Source ZIPs and
+extracted TIFFs must remain unchanged.
+
+======================================================================
+L. PAIR1 VALIDITY MASK INVESTIGATION
+======================================================================
+
+Initial problem: - Original cloudy TIFFs had nodata=None. - Initial
+validity logic treated all cloudy pixels as valid. - Original
+valid_mask.npy was all True and therefore ineffective.
+
+Observed data: - All three cloudy bands have exactly 53,342,583 zeros at
+identical pixel locations. - These zeros form large triangular edge
+regions. - They represent likely unfilled areas outside the actual image
+footprint, based on their shared spatial geometry. - However, zero is
+not universally invalid in satellite imagery. This inference is specific
+to Pair1 and should be documented.
+
+Corrected mask: valid_mask_v2.npy
+
+Created by excluding pixels where all three cloudy bands are zero and
+intersecting with the relevant masks.
+
+Results: - Array shape: (16595, 17354). - dtype: uint8. - Values: 0
+and 1. - Valid pixels: 234,647,047. - Invalid pixels: 53,342,583. -
+Valid fraction: 81.48%.
+
+Use valid_mask_v2.npy for Pair1 patch eligibility rather than the
+original all-True valid_mask.npy.
+
+Do not automatically assume all-zero pixels are invalid for every other
+scene; inspect each scene’s footprint and metadata.
+
+======================================================================
+M. CLOUD-MASK EXPERIMENTS
+======================================================================
+
+Files generated: - cloud_mask.npy - cloud_mask_v2.npy
+
+Heuristic used: - Normalized brightness threshold > 0.75. - Spectral
+whiteness condition < 0.25 (as used in the implementation). - Version 2
+intersects candidates with valid_mask_v2.
+
+Version 2: - Cloud candidate pixels: 38,819,179. - Valid pixels:
+234,647,047. - Candidate fraction: 16.54% of valid pixels.
+
+Visual assessment: - Some clouds detected. - Many clouds missed. - False
+positives possible.
+
+Decision: Stop tuning this heuristic. It is not reliable enough to be
+treated as ground truth and is not required by DiffCR.
+
+Cloud pixels are valid cloudy input and must remain in the model input.
+Only invalid/unfilled/nodata areas should be excluded from training.
+
+======================================================================
+N. ALIGNMENT: DO NOT CONFUSE THE STAGES
+======================================================================
+
+Four separate concepts: 1. Geographic overlap: do both scenes cover a
+common geographic area? 2. Reprojection/grid matching: are they in the
+same CRS, dimensions, and pixel grid? 3. Pixel-level registration: do
+the same ground features occupy corresponding pixels? 4. Common valid
+footprint: are both images valid at the same locations?
+
+Matching CRS, dimensions, and affine transforms proves that the images
+occupy a common output grid. It does not independently prove exact
+pixel-level correspondence.
+
+The user explicitly corrected this distinction: overlap and alignment
+are different. Preserve that distinction in all future explanations.
+
+Why it matters: DiffCR is trained using paired cloudy/clear imagery and
+a pixel-wise reconstruction target. Misregistered pairs can corrupt
+supervision, even if their geospatial metadata match.
+
+======================================================================
+O. SIFT/RANSAC REGISTRATION ATTEMPTS
+======================================================================
+
+First attempt: - Global SIFT matching did not produce enough reliable
+matches.
+
+Keypoint visualisation: - Cloudy keypoints: 4,270. - Clear keypoints:
+10,001.
+
+A heuristic cloud mask was tried to help focus registration, but it was
+poor.
+
+Second global SIFT/RANSAC attempt on BAND4: - Cloudy keypoints: 9,712. -
+Clear keypoints: 12,362. - Good matches: 112. - RANSAC inliers: 11. -
+Outliers: 101. - Inlier ratio: 9.82%.
+
+Estimated transformation: [[-1.47768792e-19, 2.60207049e-19,
+1.16113306e+03], [-2.60207049e-19, -1.47768792e-19, 4.03591644e+02]]
+
+The 2x2 linear part is effectively zero. The translation is not
+physically meaningful. Inliers were clustered in a small region and not
+spatially distributed.
+
+Conclusion: - This transform is degenerate. - Do not apply it. - This
+attempt did not validate registration. - It does not prove the scenes
+are misaligned; the result is inconclusive. - Do not repeat global SIFT
+or continue tuning the heuristic cloud mask.
+
+Local checks in several separated cloud-free regions were discussed as a
+focused diagnostic, not as a method prescribed by the DiffCR paper.
+SIFT/RANSAC is optional diagnostic work, not a mandatory DiffCR step.
+
+======================================================================
+P. PAIR1 PATCH FEASIBILITY — NOT EXTRACTED
+======================================================================
+
+A feasibility calculation was made using: - Patch size: 256x256. -
+Stride: 256. - Minimum valid fraction: 0.90. - Pair1 valid_mask_v2.
+
+Counts: - Candidate patches: 4,288. - Eligible by validity fraction:
+3,486. - Rejected: 802. - Eligible fraction: 81.30%.
+
+These are only candidate patch counts. They are not extracted patches
+and are not yet approved training data.
+
+The user objected when patch counts were calculated before resolving
+correspondence. Do not repeat that sequencing mistake.
+
+No Pair1 patches have been extracted yet.
+
+======================================================================
+Q. DATA QUALITY AND RADIOMETRY ISSUES STILL OPEN
+======================================================================
+
+Pair1 radiometry: - Cloudy aligned bands: uint16. - Clear aligned bands:
+float32. - Cloudy source values previously observed around min 0 and max
+roughly 907–939 depending on band. - Clear source values were around
+537–607 in one inspection. - The exact radiometric relationship and
+scale need to be verified.
+
+Do not blindly normalize both using MAX_PIXEL_VALUE=1023 until the
+source metadata and value distributions have been checked.
+
+Other checks: - Acquisition dates and temporal separation. -
+Seasonal/illumination differences. - Land-cover changes between
+acquisitions. - Correct cloudy/clear scene pairing. - Pixel
+correspondence in cloud-free regions. - Valid data footprint. -
+Radiometric scaling and nodata treatment.
+
+Use scene/pair-level train/validation/test splits. Do not randomly
+distribute patches from one scene across splits, because that causes
+spatial leakage.
+
+======================================================================
+R. CURRENT EXACT STATE / LAST ACTION
+======================================================================
+
+Pair1 is reprojected to a common grid and has a corrected validity mask.
+
+The most recent intended action was to inspect cloudy and clear images
+side by side with coordinate grids in a notebook, in order to choose
+three spatially separated, cloud-free regions for a focused local
+correspondence check.
+
+The user has not yet provided the screenshot/output for that step.
+
+Visualization code previously used:
+
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+axes[0].imshow(cloudy_rgb) axes[0].set_title(“Cloudy LISS-IV”)
+
+axes[1].imshow(clear_rgb) axes[1].set_title(“Clear LISS-IV”)
+
+for ax in axes: ax.set_xlim(0, cloudy_rgb.shape[1])
+ax.set_ylim(cloudy_rgb.shape[0], 0) ax.grid(alpha=0.3) ax.set_xlabel(“X
+coordinate”) ax.set_ylabel(“Y coordinate”)
+
+plt.tight_layout() plt.show()
+
+Continue from this exact point. Do not restart Pair1 alignment or ask
+for already supplied metadata.
+
+======================================================================
+S. NEXT WORK — PRIORITY ORDER
+======================================================================
+
+1.  Continue from the coordinate-grid preview already requested.
+2.  Perform a focused correspondence check in three spatially separated
+    cloud-free regions. Avoid repeating global SIFT.
+3.  Decide whether Pair1 is sufficiently corresponding for supervised
+    paired training; record the evidence and limitations.
+4.  If Pair1 is accepted, automate the validated preparation workflow
+    for the other provisional pairs.
+5.  Check radiometric scaling and normalization.
+6.  Extract paired 256x256 patches using the validated common valid
+    footprint.
+7.  Create manifests and split by scene/pair (70% train, 15% validation,
+    15% test as currently configured).
+8.  Fine-tune the existing DiffCR checkpoint using only new experiment
+    paths.
+9.  Evaluate baseline DiffCR.
+10. Run the proposed SAM/spectral-loss experiment and compare with
+    baseline.
+11. Report test metrics and qualitative results honestly.
+
+Do not proceed to patch extraction before the pair’s correspondence is
+accepted.
+
+======================================================================
+T. PROJECT CLAIMS — WHAT CAN AND CANNOT BE SAID
+======================================================================
+
+Accurate: - We are adapting the core DiffCR conditional diffusion
+methodology to LISS-IV. - We use Green, Red, and NIR bands. - We
+reproject clear images onto a cloudy reference grid during
+preparation. - Pair1’s six output TIFFs share the same CRS, dimensions,
+and affine transform. - Pair1 has a corrected validity mask based on the
+observed common zero-filled edge regions. - Global SIFT/RANSAC did not
+provide a valid registration transform. - SAM and inter-band spectral
+consistency are proposed experimental loss terms.
+
+Not accurate / must not claim: - “We exactly reproduced every part of
+the paper.” - “The paper requires SIFT/RANSAC.” - “The paper requires a
+separate cloud mask.” - “Matching geotransforms proves pixel-perfect
+alignment.” - “All 13 candidate pairs are validated.” - “3,486 patches
+are already extracted or approved.” - “The heuristic cloud mask is
+accurate ground truth.” - “The proposed loss is novel or better” before
+literature review and ablation/test results. - “The U-Net metrics are
+DiffCR metrics.”
+
+======================================================================
+U. USER’S WORKFLOW AND RESPONSE REQUIREMENTS
+======================================================================
+
+The user is frustrated by repeated loss of context, unnecessary
+experiments, and contradictory directions.
+
+For the next assistant: - Give one concrete next step at a time. - Wait
+for the user’s output before moving on. - Do not dump multiple
+alternative scripts or long plans when one action is enough. - Be direct
+and technically precise. - Use .ipynb notebooks for visualization and
+verification. - Use .py scripts for processing and training. - Do not
+ask the user to repeat known information. - Do not restart completed
+work. - Do not alter the selected DiffCR architecture without a clear
+reason and explicit discussion. - Do not redirect to Pix2Pix/PatchGAN. -
+Do not tune cloud masks further. - Do not repeat failed global
+SIFT/RANSAC. - Do not overwrite the original dataset or checkpoint. - Do
+not extract patches before accepting spatial correspondence. - Preserve
+the distinction between overlap, reprojection, registration, and valid
+footprint. - Acknowledge errors briefly and correct them; avoid lengthy
+apologies.
+
+======================================================================
+V. OTHER RELEVANT PROJECT HISTORY
+======================================================================
+
+The project involved discussion of how many paired scenes/images are
+needed for GAN/diffusion training. The user was concerned that
+collecting thousands of distinct satellite scenes was unrealistic. A key
+distinction was clarified: - A “scene” is a large satellite
+acquisition. - A scene can be divided into many smaller image patches. -
+Therefore, thousands of training patches do not mean thousands of
+separate satellite scenes. - However, patches from the same scene are
+spatially correlated and must not be randomly split across train/test. -
+More patches do not automatically mean more independent geographic
+diversity.
+
+The user discussed Sentinel-2 ZIP contents and 10980x10980 scene
+dimensions during an earlier data exploration conversation. That was not
+the final dataset choice. The retained project constraint is LISS-IV
+only.
+
+======================================================================
+W. FINAL HANDOFF
+======================================================================
+
+The most important immediate fact: Pair1 has been reprojected to a
+common grid, but pixel-level correspondence has not been conclusively
+validated. A global SIFT/RANSAC attempt failed to produce a valid
+transformation. The next step is the already-requested visual/local
+correspondence inspection—not more cloud-mask tuning, not another global
+SIFT run, and not patch extraction.
+
+Preserve the original DiffCR model/checkpoint and all old data. Continue
+the LISS-IV adaptation in the isolated new experiment folders.

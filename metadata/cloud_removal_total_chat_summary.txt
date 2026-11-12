@@ -1,0 +1,318 @@
+CLOUD REMOVAL PROJECT — TOTAL CHAT SUMMARY Last updated: 1 November 2026
+
+1.  PROJECT OBJECTIVE Project: Generative AI-Based Cloud Removal and
+    Reconstruction for LISS-IV Satellite Imagery. Hackathon: ISRO
+    Bharatiya Antariksh Hackathon 2026. Base paper: “DiffCR: A Fast
+    Conditional Diffusion Framework for Cloud Removal From Optical
+    Satellite Images” (IEEE TGRS, 2024). Repository:
+    https://github.com/XavierJiezou/DiffCR
+
+The project adapts the existing DiffCR conditional diffusion model to
+LISS-IV satellite imagery. The user has already implemented and trained
+DiffCR. This is NOT a new Pix2Pix GAN, U-Net/PatchGAN, or a from-scratch
+replacement project. Preserve the original implementation, dataset,
+scripts, notebooks, and checkpoint.
+
+2.  WHAT THE PAPER DOES
+
+-   Uses paired cloudy and clear satellite images.
+-   Cloudy imagery conditions the reconstruction; clear imagery is the
+    target.
+-   Uses a conditional diffusion framework and direct clean-image (x0)
+    prediction.
+-   Architecture includes condition encoder, time encoder, and denoising
+    autoencoder with TCFBlocks.
+-   The paper describes patch-based training. For SEN12MS-CR it
+    discusses georeferenced/orthorectified, synchronized pairs and
+    256x256 patches with 50% overlap.
+
+The paper does NOT require: - A separate cloud-detection model. - A
+perfect cloud mask. - SIFT/RANSAC registration. - A cloud mask as a
+required DiffCR input. - Pix2Pix/PatchGAN or a cloud-mask pretraining
+stage.
+
+A cloud mask is optional for registration assistance or cloud-region
+evaluation. It is not a required DiffCR input. Do not waste time
+perfecting the heuristic cloud mask.
+
+3.  OUR LISS-IV ADAPTATION Bands:
+
+-   BAND2 = Green
+-   BAND3 = Red
+-   BAND4 = NIR
+
+DiffCR model input: 6 channels (3 cloudy + 3 noisy clear channels).
+DiffCR output: 3-channel predicted clear image. Existing normalization:
+2 * (x / 1023) - 1, nominal range [-1, 1].
+
+Radiometric ranges and scaling for the new LISS-IV cloudy/clear products
+have NOT been fully verified. Do not assume 1023 is correct for both
+without checking.
+
+4.  PROPOSED EXPERIMENT / NOVELTY HYPOTHESIS Proposed total loss:
+    L_total = lambda1 * L1 + lambda2 * L_SAM + lambda3 * L_Spectral
+
+-   L1: pixel reconstruction loss.
+-   SAM: Spectral Angle Mapper loss.
+-   Spectral: inter-band spectral consistency loss.
+
+This is a hypothesis, not proven novelty or guaranteed improvement. It
+needs a literature review, ablation study, and comparison against the
+original DiffCR loss and baseline. Do not claim novelty or improvement
+before evidence.
+
+5.  ORIGINAL DATASET AND CHECKPOINT — DO NOT TOUCH Original dataset:
+
+-   22 scenes; 75,551 paired patches.
+-   Train 51,414; validation 10,442; test 13,695.
+-   Split by scene.
+-   Existing best validation loss approximately 0.05409 at epoch 8 (not
+    a test metric).
+-   Existing checkpoint: checkpoints_model.pth.
+
+Keep the original data, scripts, notebooks, and checkpoint unchanged.
+
+Hardware: NVIDIA RTX 5050 Laptop GPU, 8 GB VRAM; CUDA available; PyTorch
+2.11.0+cu128.
+
+6.  NEW EXPERIMENT STRUCTURE Project root: E:-Removal
+
+New folders: data data data scripts scripts scripts checkpoints outputs
+logs
+
+Source data: - Cloudy ZIPs extracted to D: - Clear ZIPs extracted to
+D: - 17 cloudy and 17 clear ZIPs matched by Pair ID. - Pair IDs: Pair1,
+Pair4–Pair11, Pair13–Pair20. - Initial bounding-box screening found 13
+provisional positive-overlap candidates: Pair1, Pair4, Pair5, Pair9,
+Pair11, Pair13, Pair14, Pair15, Pair16, Pair17, Pair18, Pair19,
+Pair20. - Pair6, Pair7, Pair8, Pair10 had zero overlap in the initial
+screening method; Pair10 had differing UTM zones. - These are
+provisional candidates, NOT confirmed aligned training pairs.
+
+7.  CONFIGURATION FILE — ALREADY TESTED configuration.py:
+
+from pathlib import Path
+
+PROJECT_ROOT = Path(r”E:-Removal”) DATA_ROOT = Path(r”D:“) CLOUDY_DIR =
+DATA_ROOT /”cloudy” CLEAR_DIR = DATA_ROOT / “clear”
+
+NEW_DATA_DIR = PROJECT_ROOT / “data” / “new” ALIGNED_DIR = NEW_DATA_DIR
+/ “aligned” PATCH_DIR = NEW_DATA_DIR / “patches” MANIFEST_DIR =
+NEW_DATA_DIR / “manifests”
+
+CHECKPOINT_DIR = PROJECT_ROOT / “checkpoints” / “new” OUTPUT_DIR =
+PROJECT_ROOT / “outputs” / “new” LOG_DIR = PROJECT_ROOT / “logs” / “new”
+
+BANDS = [“BAND2.tif”, “BAND3.tif”, “BAND4.tif”] BAND_NAMES = [“Green”,
+“Red”, “NIR”] NUM_BANDS = 3
+
+PATCH_SIZE = 256 STRIDE = 256 MIN_VALID_FRACTION = 0.90
+
+MAX_PIXEL_VALUE = 1023.0 NORMALIZATION_MIN = -1.0 NORMALIZATION_MAX =
+1.0
+
+TRAIN_RATIO = 0.70 VAL_RATIO = 0.15 TEST_RATIO = 0.15 RANDOM_SEED = 42
+
+Configuration was tested and works.
+
+8.  PAIR1 — CURRENT ALIGNED DATA Pair1 name: bengaluru1. Folder:
+    E:-Removal
+
+Contents: cloudy2.tif cloudy3.tif cloudy4.tif clear2.tif clear3.tif
+clear4.tif alignment_info.txt valid_mask.npy valid_mask_v2.npy
+cloud_mask.npy cloud_mask_v2.npy
+
+Metadata: - Cloudy dtype uint16; clear dtype float32. - Reference CRS
+EPSG:32643. - All six aligned TIFFs are 16595 rows x 17354 columns. -
+All six have the same CRS, dimensions, and affine transform: | 5.00,
+0.00, 727858.94| | 0.00,-5.00, 1534262.50| | 0.00, 0.00, 1.00|
+
+Clear bands were reprojected to the cloudy reference grid using bilinear
+resampling. Source masks used nearest-neighbour resampling. Script:
+scripts/preparation/align_pair1.py
+
+IMPORTANT: The script refuses to rerun if the output folder is
+non-empty. Never rerun blindly or overwrite existing files.
+
+9.  PAIR1 VALIDITY MASK All three cloudy bands are zero at the same
+    53,342,583 pixel locations (18.52%). These form large triangular
+    edge areas and are likely unfilled image-footprint pixels. Original
+    cloudy TIFF had no nodata metadata, so the original mask logic
+    missed them.
+
+valid_mask.npy: - Boolean array, all True (287,989,630 true). -
+Ineffective; do not rely on it.
+
+valid_mask_v2.npy: - uint8 values 0/1. - Excludes pixels where all three
+cloudy bands are zero and checks dataset masks. - Valid: 234,647,047. -
+Invalid: 53,342,583. - Valid fraction: 81.48%.
+
+This is a working Pair1 mask. Do not automatically apply the same
+all-zero rule to every other scene without checking.
+
+10. CLOUD MASK EXPERIMENTS — STOP TUNING Files:
+
+-   cloud_mask.npy
+-   cloud_mask_v2.npy
+
+cloud_mask_v2 uses valid_mask_v2 and a brightness/whiteness heuristic.
+It marks 38,819,179 cloud candidates (16.54% of valid pixels). It misses
+clouds and may include false positives. It is not reliable and is not
+needed by DiffCR.
+
+Do not continue perfecting it. Cloud pixels must remain in the cloudy
+model input. Do not exclude cloudy training pixels using this mask.
+
+11. ALIGNMENT: DISTINGUISH FOUR THINGS
+12. Geographic overlap: whether the two scenes cover a common area.
+13. CRS/grid reprojection: common CRS, dimensions, and pixel grid.
+14. Residual pixel registration: whether the same ground features occupy
+    corresponding pixels.
+15. Common valid footprint: whether both images are valid at the same
+    locations.
+
+Pair1 has completed geospatial reprojection to a common grid. However,
+matching CRS/dimensions/transform alone does NOT prove pixel-level
+ground-feature correspondence. Paired pixel-wise supervised training
+requires spatial correspondence.
+
+12. FAILED GLOBAL SIFT + RANSAC TEST Tested on NIR BAND4:
+
+-   Cloudy keypoints: 9,712.
+-   Clear keypoints: 12,362.
+-   Good matches: 112.
+-   RANSAC inliers: 11.
+-   Outliers: 101.
+-   Inlier ratio: 9.82%.
+
+Estimated matrix: [[-1.47768792e-19, 2.60207049e-19, 1.16113306e+03],
+[-2.60207049e-19, -1.47768792e-19, 4.03591644e+02]]
+
+Linear components are effectively zero; translation is physically
+meaningless. Inliers were concentrated in a small region rather than
+distributed spatially.
+
+Conclusion: - Do NOT apply this transform. - Global SIFT/RANSAC did not
+validate registration. - This is inconclusive; it does not prove the
+images are misaligned. - Do not repeat global SIFT tuning.
+
+13. CURRENT IMMEDIATE STATE The last requested action was to display
+    cloudy and clear previews side by side with coordinate grids in a
+    notebook, so three spatially separated cloud-free regions could be
+    selected for a focused local correspondence check.
+
+The user has NOT yet supplied the requested screenshot.
+
+Previously supplied visualization code:
+
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+axes[0].imshow(cloudy_rgb) axes[0].set_title(“Cloudy LISS-IV”)
+axes[1].imshow(clear_rgb) axes[1].set_title(“Clear LISS-IV”)
+
+for ax in axes: ax.set_xlim(0, cloudy_rgb.shape[1])
+ax.set_ylim(cloudy_rgb.shape[0], 0) ax.grid(alpha=0.3) ax.set_xlabel(“X
+coordinate”) ax.set_ylabel(“Y coordinate”)
+
+plt.tight_layout() plt.show()
+
+Continue from this exact point. Do not restart the workflow or ask the
+user to repeat completed work. Only improve tick spacing if genuinely
+necessary.
+
+14. PATCH EXTRACTION — NOT DONE A feasibility calculation (not
+    extraction) gave:
+
+-   Patch size 256x256.
+-   Stride 256.
+-   Minimum valid fraction 0.90.
+-   Candidate patches: 4,288.
+-   Eligible candidates: 3,486.
+-   Rejected: 802.
+-   Eligible fraction: 81.30%.
+
+No patches have been extracted. These are candidate counts, not approved
+training patches. Do not extract until spatial correspondence is
+accepted.
+
+15. REMAINING DATA QUALITY CHECKS Before training:
+
+-   Verify cloudy/clear pixel correspondence.
+-   Inspect acquisition dates and temporal separation.
+-   Consider seasonal, illumination, and land-cover changes.
+-   Check cloudy and clear radiometric ranges/scaling.
+-   Verify whether MAX_PIXEL_VALUE=1023 is suitable for both products.
+-   Split by scene/pair, not randomly by patches, to avoid spatial
+    leakage.
+
+Cloudy is uint16 and clear is float32. Radiometric comparability has not
+been fully assessed.
+
+16. NEXT STEPS — IN ORDER
+
+17. Continue from the coordinate-grid preview already requested.
+
+18. Perform one focused local correspondence check in three spatially
+    separated, cloud-free regions. Do not repeat global SIFT.
+
+19. If correspondence is acceptable, record the acceptance criteria and
+    approve Pair1.
+
+20. If not acceptable or unverifiable, do not use Pair1 for supervised
+    training yet.
+
+21. Apply the preparation/validation workflow to other provisional
+    candidates.
+
+22. Check radiometry and normalization.
+
+23. Extract paired 256x256 patches.
+
+24. Split train/validation/test by scene/pair.
+
+25. Fine-tune the existing DiffCR checkpoint in new experiment folders
+    only.
+
+26. Compare original DiffCR baseline with the proposed spectral-loss
+    experiment.
+
+27. HOW TO DESCRIBE THE WORK ACCURATELY We follow the core DiffCR
+    methodology, adapting it to LISS-IV; we are not claiming to
+    reproduce every paper detail exactly.
+
+Paper-derived core: - Conditional diffusion. - Paired cloudy/clear
+imagery. - Conditional reconstruction. - Patch-based supervised
+training.
+
+Our adaptation: - LISS-IV Green, Red, NIR bands. - Reprojection and
+common-grid preparation. - LISS-IV-specific radiometric handling. -
+Fine-tuning on our dataset.
+
+Our proposed experiment: - SAM and inter-band spectral consistency
+losses.
+
+Additional diagnostic: - Local registration verification. SIFT/RANSAC
+was tried but did not validate registration.
+
+Do not claim SIFT/RANSAC, cloud-mask generation, or a separate cloud
+detector is required by DiffCR.
+
+18. INSTRUCTIONS FOR CONTINUING THE CHAT
+
+-   Preserve this exact project state; do not restart.
+-   Give ONE actionable step at a time and wait for the user’s output.
+-   Be concise, direct, and technically accurate.
+-   Use notebook cells for visualization/verification and .py scripts
+    for actual processing/training.
+-   Never overwrite the original dataset or checkpoint.
+-   Never rerun scripts that refuse non-empty output folders without
+    inspecting them.
+-   Do not repeat cloud-mask work.
+-   Do not repeat global SIFT/RANSAC.
+-   Do not claim common CRS/transform/dimensions prove pixel-perfect
+    alignment.
+-   Do not extract patches before approving spatial correspondence.
+-   Keep focus on adapting/fine-tuning existing DiffCR.
+-   The user is frustrated by context loss and unnecessary detours. Do
+    not ask them to repeat information already recorded.
